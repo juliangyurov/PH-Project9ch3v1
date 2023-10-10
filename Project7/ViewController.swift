@@ -10,11 +10,13 @@ import UIKit
 class ViewController: UITableViewController {
     var petitions = [Petition]()
     var filteredPetitions = [Petition]()
+    var filterText = ""
+    var urlString = ""
 
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        let urlString: String
+        //let urlString: String
         
         navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Filter", style: .plain, target: self, action: #selector(filterPetitions))
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Credit", style: .plain, target: self, action: #selector(showCredit))
@@ -27,18 +29,12 @@ class ViewController: UITableViewController {
             urlString = "https://www.hackingwithswift.com/samples/petitions-2.json"
         }
         
-        if let url = URL(string: urlString){
-            if let data = try? Data(contentsOf: url){
-                //Data fetched OK
-                //print("data.count=\(data.count)")
-                parse(json: data)
-                return
-            }
-        }
-        showError()
+        performSelector(inBackground: #selector(fetchFromURL), with: nil)
+        
+
      }
     
-    func showError() {
+    @objc func showError() {
         let ac = UIAlertController(title: "Loading error", message: "There was a problem loading the feed; Check your connection and try again.", preferredStyle: .alert)
         ac.addAction(UIAlertAction(title: "OK", style: .default))
         present(ac, animated: true)
@@ -54,9 +50,25 @@ class ViewController: UITableViewController {
 //            for item in petitions{
 //                print("TITLE \(item.title)","BODY \(item.body)")
 //            }
-            tableView.reloadData()
+            tableView.performSelector(onMainThread: #selector(UITableView.reloadData), with: nil, waitUntilDone: false)
+        }else{
+            performSelector(onMainThread: #selector(showError), with: nil, waitUntilDone: false)
         }
     }
+    
+    @objc func fetchFromURL() {
+        if let url = URL(string: urlString){
+            if let data = try? Data(contentsOf: url){
+                //Data fetched OK
+                //print("data.count=\(data.count)")
+                parse(json: data)
+                return
+            }
+        }
+        performSelector(onMainThread: #selector(showError), with: nil, waitUntilDone: false)
+        
+    }
+    
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         if filteredPetitions.isEmpty{
             return petitions.count
@@ -99,6 +111,7 @@ class ViewController: UITableViewController {
         let submitAction = UIAlertAction(title: "Submit", style: .default){
             [weak self, weak ac] action in
             guard let searchText = ac?.textFields?[0].text else { return }
+            //self?.submit(searchText)
             self?.submit(searchText)
         }
         ac.addAction(submitAction)
@@ -106,15 +119,18 @@ class ViewController: UITableViewController {
     }
     
     func submit(_ searchText: String){
-        
+        filterText = searchText
         filteredPetitions.removeAll(keepingCapacity: true)
-        
+         performSelector(inBackground: #selector(backgroundFilterWork), with: nil)
+     }
+    
+    @objc func backgroundFilterWork() {
         for item in petitions{
-            if item.title.contains(searchText) || item.body.contains(searchText){
+            if item.title.contains(filterText) || item.body.contains(filterText){
                 filteredPetitions.append(item)
             }
         }
-        tableView.reloadData()
+        tableView.performSelector(onMainThread: #selector(UITableView.reloadData), with: nil, waitUntilDone: false)
     }
 }
 
