@@ -111,7 +111,6 @@ class ViewController: UITableViewController {
         let submitAction = UIAlertAction(title: "Submit", style: .default){
             [weak self, weak ac] action in
             guard let searchText = ac?.textFields?[0].text else { return }
-            //self?.submit(searchText)
             self?.submit(searchText)
         }
         ac.addAction(submitAction)
